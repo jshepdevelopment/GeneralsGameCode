@@ -76,28 +76,8 @@ bool DX8WebBrowser::Initialize(	const char* badpageurl,
 		}
 
 		// Initialize the browser.
-		if(hr == S_OK)
-		{
-			hWnd = (HWND)WW3D::Get_Window();
-			pBrowser->Initialize(reinterpret_cast<long*>(DX8Wrapper::_Get_D3D_Device8()));
-
-			if(badpageurl)
-				pBrowser->put_BadPageURL(_bstr_t(badpageurl));
-
-			if(loadingpageurl)
-				pBrowser->put_LoadingPageURL(_bstr_t(loadingpageurl));
-
-			if(mousefilename)
-				pBrowser->put_MouseFileName(_bstr_t(mousefilename));
-
-			if(mousebusyfilename)
-				pBrowser->put_MouseBusyFileName(_bstr_t(mousebusyfilename));
-		}
-		else
-		{
-			pBrowser = 0;
-			return false;
-		}
+		pBrowser = 0;
+		return false;
 	}
 
 	return true;
@@ -180,6 +160,7 @@ void	DX8WebBrowser::CreateBrowser(const char* browsername, const char* url, int 
 	if(pBrowser)
 	{
 		_bstr_t brsname(browsername);
+		// NOTE: This truncates HWND, but hopefully that is safe.
 		pBrowser->CreateBrowser(brsname, _bstr_t(url), reinterpret_cast<long>(hWnd), x, y, w, h, options, gamedispatch);
 		pBrowser->SetUpdateRate(brsname, updateticks);
 	}

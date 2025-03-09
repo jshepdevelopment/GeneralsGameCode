@@ -45,7 +45,7 @@
 
 #include "always.h"
 #include "dllist.h"
-#include "../../../DX90SDK/include/d3d8.h"
+#include "../../../DX90SDK/include/d3d9.h"
 #include "matrix4.h"
 #include "statistics.h"
 #include "wwstring.h"
@@ -102,18 +102,10 @@ WWINLINE void DX8_ErrorCode(unsigned res)
 	Log_DX8_ErrorCode(res);
 }
 
-#ifdef WWDEBUG
-#define DX8CALL_HRES(x,res) DX8_Assert(); res = DX8Wrapper::_Get_D3D_Device8()->x; DX8_ErrorCode(res); number_of_DX8_calls++;
-#define DX8CALL(x) DX8_Assert(); DX8_ErrorCode(DX8Wrapper::_Get_D3D_Device8()->x); number_of_DX8_calls++;
-#define DX8CALL_D3D(x) DX8_Assert(); DX8_ErrorCode(DX8Wrapper::_Get_D3D8()->x); number_of_DX8_calls++;
+#define DX8CALL_HRES(x,res) DX8_Assert(); res = DX8Wrapper::D3DDevice->x; DX8_ErrorCode(res); number_of_DX8_calls++;
+#define DX8CALL(x) DX8_Assert(); DX8_ErrorCode(DX8Wrapper::D3DDevice->x); number_of_DX8_calls++;
+#define DX8CALL_D3D(x) DX8_Assert(); DX8_ErrorCode(DX8Wrapper::D3DInterface->x); number_of_DX8_calls++;
 #define DX8_THREAD_ASSERT() if (_DX8SingleThreaded) { WWASSERT_PRINT(DX8Wrapper::_Get_Main_Thread_ID()==ThreadClass::_Get_Current_Thread_ID(),"DX8Wrapper::DX8 calls must be called from the main thread!"); }
-#else
-#define DX8CALL_HRES(x,res) res = DX8Wrapper::_Get_D3D_Device8()->x; number_of_DX8_calls++;
-#define DX8CALL(x) DX8Wrapper::_Get_D3D_Device8()->x; number_of_DX8_calls++;
-#define DX8CALL_D3D(x) DX8Wrapper::_Get_D3D8()->x; number_of_DX8_calls++;
-#define DX8_THREAD_ASSERT() ;
-#endif
-
 
 #define no_EXTENDED_STATS
 // EXTENDED_STATS collects additional timing statistics by turning off parts
@@ -185,6 +177,10 @@ struct RenderStateStruct
 */
 class DX8Wrapper
 {
+	friend class DX8Caps;
+	friend class DX8WebBrowser;
+	friend class WbView3d;
+
 	enum ChangedStates {
 		WORLD_CHANGED	=	1<<0,
 		VIEW_CHANGED	=	1<<1,
@@ -420,14 +416,113 @@ public:
 	static void					Set_Render_Target (IDirect3DSurface8 *render_target);
 	static void					Set_Render_Target (IDirect3DSwapChain8 *swap_chain);
 
-	static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }
-	static IDirect3D8* _Get_D3D8() { return D3DInterface; }
+	//static IDirect3DDevice8* _Get_D3D_Device8() { return D3DDevice; }
+	//static IDirect3D8* _Get_D3D8() { return D3DInterface; }
 	static void Invalidate_Cached_Render_States(void);
 
 	/// Returns the display format - added by TR for video playback - not part of W3D
 	static WW3DFormat	getBackBufferFormat( void );
 	static bool Reset_Device(bool reload_assets=true);
+	static HRESULT SetTexture(DWORD Stage, IDirect3DBaseTexture8* pTexture) {
+		return D3DDevice->SetTexture(Stage, pTexture);
+	}
 
+	static HRESULT SetRenderState(D3DRENDERSTATETYPE State, DWORD Value) {
+		return D3DDevice->SetRenderState(State, Value);
+	}
+
+	static HRESULT CreateVertexBuffer(UINT Length, DWORD Usage, DWORD FVF, D3DPOOL Pool, IDirect3DVertexBuffer9** ppVertexBuffer, HANDLE* pSharedHandle) {
+		return D3DDevice->CreateVertexBuffer(Length, Usage, FVF, Pool, ppVertexBuffer, pSharedHandle);
+	}
+
+	static HRESULT CreateIndexBuffer(UINT Length, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DIndexBuffer9** ppIndexBuffer, HANDLE* pSharedHandle) {
+		return D3DDevice->CreateIndexBuffer(Length, Usage, Format, Pool, ppIndexBuffer, pSharedHandle);
+	}
+
+	static HRESULT SetTransform(D3DTRANSFORMSTATETYPE State, CONST D3DMATRIX* pMatrix) {
+		return D3DDevice->SetTransform(State, pMatrix);
+	}
+	static HRESULT GetTransform(D3DTRANSFORMSTATETYPE State, D3DMATRIX* pMatrix) {
+		return D3DDevice->GetTransform(State, pMatrix);
+	}
+	static HRESULT SetStreamSource(UINT StreamNumber, IDirect3DVertexBuffer9* pStreamData, UINT OffsetInBytes, UINT Stride) {
+		return D3DDevice->SetStreamSource(StreamNumber, pStreamData, OffsetInBytes, Stride);
+	}
+
+	static HRESULT SetIndices(IDirect3DIndexBuffer9* pIndexData) {
+		return D3DDevice->SetIndices(pIndexData);
+	}
+
+	static HRESULT DrawIndexedPrimitive(D3DPRIMITIVETYPE type, INT BaseVertexIndex, UINT MinVertexIndex, UINT NumVertices, UINT startIndex, UINT primCount) {
+		return D3DDevice->DrawIndexedPrimitive(type, BaseVertexIndex, MinVertexIndex, NumVertices, startIndex, primCount);
+	}
+
+	static HRESULT SetFVF(DWORD FVF) {
+		return D3DDevice->SetFVF(FVF);
+	}
+
+	static HRESULT DrawPrimitiveUP(D3DPRIMITIVETYPE PrimitiveType, UINT PrimitiveCount, CONST void* pVertexStreamZeroData, UINT VertexStreamZeroStride) {
+		return D3DDevice->DrawPrimitiveUP(PrimitiveType, PrimitiveCount, pVertexStreamZeroData, VertexStreamZeroStride);
+	}
+
+	static HRESULT SetTextureStageState(DWORD Stage, D3DTEXTURESTAGESTATETYPE Type, DWORD Value) {
+		return D3DDevice->SetTextureStageState(Stage, Type, Value);
+	}
+
+	static HRESULT GetRenderState(D3DRENDERSTATETYPE State, DWORD* pValue) {
+		return D3DDevice->GetRenderState(State, pValue);
+	}
+
+	static HRESULT SetPixelShader(IDirect3DPixelShader9* pShader) {
+		return D3DDevice->SetPixelShader(pShader);
+	}
+
+	static HRESULT SetVertexShader(IDirect3DVertexShader9* pShader) {
+		return D3DDevice->SetVertexShader(pShader);
+	}
+
+	static bool IsDeviceReady()
+	{
+		HRESULT hr;
+		return D3DDevice && (hr = D3DDevice->TestCooperativeLevel()) == D3D_OK;
+	}
+
+	static HRESULT CreateOffscreenPlainSurface(UINT Width, UINT Height, D3DFORMAT Format, D3DPOOL Pool, IDirect3DSurface9** ppSurface, HANDLE* pSharedHandle) {
+		return D3DDevice->CreateOffscreenPlainSurface(Width, Height, Format, Pool, ppSurface, pSharedHandle);
+	}
+
+	static HRESULT GetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurface9** ppRenderTarget) {
+		return D3DDevice->GetRenderTarget(RenderTargetIndex, ppRenderTarget);
+	}
+
+	static HRESULT CreateTexture(UINT Width, UINT Height, UINT Levels, DWORD Usage, D3DFORMAT Format, D3DPOOL Pool, IDirect3DTexture9** ppTexture, HANDLE* pSharedHandle) {
+		return D3DDevice->CreateTexture(Width, Height, Levels, Usage, Format, Pool, ppTexture, pSharedHandle);
+	}
+
+	static HRESULT GetDepthStencilSurface(IDirect3DSurface9** ppZStencilSurface) {
+		return D3DDevice->GetDepthStencilSurface(ppZStencilSurface);
+	}
+
+	static HRESULT SetRenderTarget(DWORD RenderTargetIndex, IDirect3DSurface9* pRenderTarget) {
+		return D3DDevice->SetRenderTarget(RenderTargetIndex, pRenderTarget);
+	}
+
+	static HRESULT SetDepthStencilSurface(IDirect3DSurface9* pNewZStencil) {
+		return D3DDevice->SetDepthStencilSurface(pNewZStencil);
+	}
+
+	static void ShowCursor(BOOL visible)
+	{
+		D3DDevice->ShowCursor(visible);
+	}
+
+	static HRESULT SetCursorProperties(UINT XHotSpot, UINT YHotSpot, IDirect3DSurface9* pCursorBitmap) {
+		return D3DDevice->SetCursorProperties(XHotSpot, YHotSpot, pCursorBitmap);
+	}
+
+	static void SetCursorPosition(int X, int Y, DWORD Flags) {
+		D3DDevice->SetCursorPosition(X, Y, Flags);
+	}
 protected:
 
 	static bool	Create_Device(void);
@@ -479,6 +574,7 @@ protected:
 	static bool Find_Z_Mode(D3DFORMAT colorbuffer,D3DFORMAT backbuffer, D3DFORMAT *zmode);
 	static bool Test_Z_Mode(D3DFORMAT colorbuffer,D3DFORMAT backbuffer, D3DFORMAT zmode);
 	static void Compute_Caps(D3DFORMAT display_format,D3DFORMAT depth_stencil_format);
+
 
 	/*
 	** Protected Member Variables
@@ -635,6 +731,17 @@ WWINLINE void DX8Wrapper::Set_DX8_Light(int index, D3DLIGHT8* light)
 
 WWINLINE void DX8Wrapper::Set_DX8_Render_State(D3DRENDERSTATETYPE state, unsigned value)
 {
+	// HACK
+	switch (state)
+	{
+	case D3DRS_ZBIAS:
+		float Biased = static_cast<float>(value) * -0.000005f;
+		value = *reinterpret_cast<unsigned*>(&Biased);
+		DX8CALL(SetRenderState( D3DRS_DEPTHBIAS, value ));
+		return;
+	}
+	// HACK
+
 	// Can't monitor state changes because setShader call to GERD may change the states!
 	if (RenderStates[state]==value) return;
 
@@ -652,6 +759,34 @@ WWINLINE void DX8Wrapper::Set_DX8_Clip_Plane(DWORD Index, CONST float* pPlane)
 
 WWINLINE void DX8Wrapper::Set_DX8_Texture_Stage_State(unsigned stage, D3DTEXTURESTAGESTATETYPE state, unsigned value)
 {
+	// HACK
+	switch (state) {
+	case D3DTSS_ADDRESSU:
+		DX8CALL(SetSamplerState(stage, D3DSAMP_ADDRESSU, value));
+		return;
+	case D3DTSS_ADDRESSV:
+		DX8CALL(SetSamplerState(stage, D3DSAMP_ADDRESSV, value));
+		return;
+	case D3DTSS_ADDRESSW:
+		DX8CALL(SetSamplerState(stage, D3DSAMP_ADDRESSW, value));
+		return;
+	case D3DTSS_MAGFILTER:
+		if (value == D3DTEXF_FLATCUBIC || value == D3DTEXF_GAUSSIANCUBIC)
+			value = D3DTEXF_LINEAR;
+		DX8CALL(SetSamplerState(stage, D3DSAMP_MAGFILTER, value));
+		return;
+	case D3DTSS_MINFILTER:
+		DX8CALL(SetSamplerState(stage, D3DSAMP_MINFILTER, value));
+		return;
+	case D3DTSS_MIPFILTER:
+		DX8CALL(SetSamplerState(stage, D3DSAMP_MIPFILTER, value));
+		return;
+	case D3DTSS_MAXANISOTROPY:
+		DX8CALL(SetSamplerState(stage, D3DSAMP_MAXANISOTROPY, value));
+		return;
+	}
+	// HACK
+
   	if (stage >= MAX_TEXTURE_STAGES)
   	{	DX8CALL(SetTextureStageState( stage, state, value ));
   		return;
@@ -683,22 +818,6 @@ WWINLINE void DX8Wrapper::Set_DX8_Texture(unsigned int stage, IDirect3DBaseTextu
 	if (Textures[stage]) Textures[stage]->AddRef();
 	DX8CALL(SetTexture(stage, texture));
 	DX8_RECORD_TEXTURE_CHANGE();
-}
-
-WWINLINE void DX8Wrapper::_Copy_DX8_Rects(
-  IDirect3DSurface8* pSourceSurface,
-  CONST RECT* pSourceRectsArray,
-  UINT cRects,
-  IDirect3DSurface8* pDestinationSurface,
-  CONST POINT* pDestPointsArray
-)
-{
-	DX8CALL(CopyRects(
-  pSourceSurface,
-  pSourceRectsArray,
-  cRects,
-  pDestinationSurface,
-  pDestPointsArray));
 }
 
 WWINLINE Vector4 DX8Wrapper::Convert_Color(unsigned color)
@@ -769,55 +888,9 @@ WWINLINE unsigned int DX8Wrapper::Convert_Color(const Vector3& color, float alph
 
 WWINLINE void DX8Wrapper::Clamp_Color(Vector4& color)
 {
-	if (!CPUDetectClass::Has_CMOV_Instruction()) {
-		for (int i=0;i<4;++i) {
-			float f=(color[i]<0.0f) ? 0.0f : color[i];
-			color[i]=(f>1.0f) ? 1.0f : f;
-		}
-		return;
-	}
-
-	__asm
-	{
-		mov	esi,dword ptr color
-
-		mov edx,0x3f800000
-
-		mov edi,dword ptr[esi]
-		mov ebx,edi
-		sar edi,31
-		not edi			// mask is now zero if negative value
-		and edi,ebx
-		cmp edi,edx		// if no less than 1.0 set to 1.0
-		cmovnb edi,edx
-		mov dword ptr[esi],edi
-
-		mov edi,dword ptr[esi+4]
-		mov ebx,edi
-		sar edi,31
-		not edi			// mask is now zero if negative value
-		and edi,ebx
-		cmp edi,edx		// if no less than 1.0 set to 1.0
-		cmovnb edi,edx
-		mov dword ptr[esi+4],edi
-
-		mov edi,dword ptr[esi+8]
-		mov ebx,edi
-		sar edi,31
-		not edi			// mask is now zero if negative value
-		and edi,ebx
-		cmp edi,edx		// if no less than 1.0 set to 1.0
-		cmovnb edi,edx
-		mov dword ptr[esi+8],edi
-
-		mov edi,dword ptr[esi+12]
-		mov ebx,edi
-		sar edi,31
-		not edi			// mask is now zero if negative value
-		and edi,ebx
-		cmp edi,edx		// if no less than 1.0 set to 1.0
-		cmovnb edi,edx
-		mov dword ptr[esi+12],edi
+	for (int i = 0; i < 4; ++i) {
+		float f = (color[i] < 0.0f) ? 0.0f : color[i];
+		color[i] = (f > 1.0f) ? 1.0f : f;
 	}
 }
 
