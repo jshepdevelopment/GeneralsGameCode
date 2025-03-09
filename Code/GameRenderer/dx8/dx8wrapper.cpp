@@ -84,7 +84,7 @@ const int DEFAULT_TEXTURE_BIT_DEPTH = 16;
 bool DX8Wrapper_IsWindowed = true;
 
 // FPU_PRESERVE
-int DX8Wrapper_PreserveFPU = 0;
+int DX8Wrapper_PreserveFPU = 1;
 
 /***********************************************************************************
 **
